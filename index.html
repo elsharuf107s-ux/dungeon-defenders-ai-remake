@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Dungeon Pretenders</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Dungeon Pretenders - a goofy 3D tower-defense action parody. Build cardboard walls, whack goblins, defend the Crystal of Moderate Importance.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <noscript><p style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font:20px sans-serif;color:#fff;text-align:center;padding:20px">Dungeon Pretenders needs JavaScript. The goblins have been informed.</p></noscript>
+  <div id="fx"></div>
+  <div id="vignette"></div>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud" class="hidden">
+    <div id="top-left" class="panel">
+      <div id="wave-label">WAVE 1</div>
+      <div id="wave-sub">Enemies: 0</div>
+      <div id="phase-label">BUILD PHASE</div>
+      <button id="btn-start-wave" class="btn small">▶ Start Wave <kbd>Enter</kbd></button>
+    </div>
+
+    <div id="top-center">
+      <div id="crystal-name">Crystal of Moderate Importance</div>
+      <div class="bar big"><div id="crystal-fill" class="fill"></div><span id="crystal-text"></span></div>
+      <div id="boss-wrap" class="hidden">
+        <div id="boss-name"></div>
+        <div class="bar boss"><div id="boss-fill" class="fill"></div></div>
+      </div>
+    </div>
+
+    <div id="top-right">
+      <canvas id="minimap" width="160" height="160"></canvas>
+      <div class="icon-btns">
+        <button id="btn-inv" class="btn tiny" title="Inventory &amp; skills">🎒 <kbd>I</kbd></button>
+        <button id="btn-mute" class="btn tiny" title="Mute">🔊 <kbd>M</kbd></button>
+        <button id="btn-pause" class="btn tiny" title="Pause">⏸ <kbd>P</kbd></button>
+      </div>
+    </div>
+
+    <div id="bottom-left" class="panel">
+      <div id="hero-line"><span id="hero-emoji">🛡️</span> <b id="hero-name">Hero</b> <span id="hero-level">Lv 1</span></div>
+      <div class="bar hp"><div id="hp-fill" class="fill"></div><span id="hp-text"></span></div>
+      <div class="bar xp"><div id="xp-fill" class="fill"></div></div>
+      <div id="sp-alert" class="hidden">★ <span id="sp-count">0</span> skill points! Press <kbd>I</kbd></div>
+    </div>
+
+    <div id="bottom-center">
+      <div id="tower-bar"></div>
+      <div id="skill-bar">
+        <div class="slot skill" id="slot-q"><div class="cd" id="cd-q"></div><span class="k">Q</span><span class="e">✨</span><span class="n" id="sp-name">Special</span></div>
+        <div class="slot skill" id="slot-dash"><div class="cd" id="cd-dash"></div><span class="k">Space</span><span class="e">💨</span><span class="n">Dash</span></div>
+      </div>
+    </div>
+
+    <div id="bottom-right" class="panel">
+      <div id="mana-line">💎 <b id="mana-val">0</b></div>
+      <div class="hint">mana</div>
+    </div>
+
+    <div id="banner"><div id="banner-main"></div><div id="banner-sub"></div></div>
+    <div id="quip"></div>
+    <div id="toasts"></div>
+    <div id="tip" class="hidden"></div>
+    <div id="mode-hint" class="hidden"></div>
+  </div>
+
+  <!-- ============ TITLE ============ -->
+  <div id="title" class="screen">
+    <div class="title-box">
+      <h1 class="logo">DUNGEON<br><span>PRETENDERS</span></h1>
+      <p class="tag">A totally original and legally distinct tower-defense experience</p>
+      <p id="title-note" class="tag" style="margin-top:-6px"></p>
+      <div id="hero-cards"></div>
+      <div id="hero-detail"></div>
+      <button id="btn-play" class="btn big">⚔️ Defend the Crystal!</button>
+      <div class="controls-grid">
+        <div><kbd>WASD</kbd> move</div>
+        <div><kbd>Mouse</kbd> aim &nbsp; <kbd>LMB</kbd> attack / place</div>
+        <div><kbd>1</kbd>–<kbd>6</kbd> pick tower (build mode)</div>
+        <div><kbd>Q</kbd> special &nbsp; <kbd>Space</kbd> dash</div>
+        <div><kbd>E</kbd> upgrade &nbsp; <kbd>R</kbd> repair &nbsp; <kbd>X</kbd> sell</div>
+        <div><kbd>RMB-drag</kbd> or <kbd>Z</kbd><kbd>C</kbd> rotate &nbsp; <kbd>Wheel</kbd> zoom</div>
+      </div>
+      <p class="fine">A parody fan project. Not affiliated with or endorsed by the makers of any other dungeon-based defense game. No goblins were harmed. Several were embarrassed.</p>
+    </div>
+  </div>
+
+  <!-- ============ PAUSE ============ -->
+  <div id="pause" class="screen hidden">
+    <div class="title-box small">
+      <h2>PAUSED</h2>
+      <p class="tag" id="pause-quip">The goblins are also paused. They are being very polite about it.</p>
+      <button id="btn-resume" class="btn big">▶ Resume</button>
+      <button id="btn-quit" class="btn">🚪 Abandon the crystal</button>
+      <div class="controls-grid">
+        <div><kbd>B</kbd> toggle build mode</div>
+        <div><kbd>Enter</kbd> start next wave early</div>
+        <div><kbd>T</kbd> repair all towers</div>
+        <div><kbd>M</kbd> mute &nbsp; <kbd>I</kbd> inventory</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ INVENTORY ============ -->
+  <div id="inv" class="screen hidden">
+    <div class="inv-box">
+      <div class="inv-head"><h2>🎒 Hero Stuff</h2><button id="btn-inv-close" class="btn small">Close <kbd>I</kbd></button></div>
+      <div class="inv-cols">
+        <div class="inv-col" id="inv-stats"></div>
+        <div class="inv-col" id="inv-equip"></div>
+        <div class="inv-col" id="inv-bag"></div>
+      </div>
+      <p class="fine">Time is frozen while you rearrange your underwear.</p>
+    </div>
+  </div>
+
+  <!-- ============ END (game over / victory) ============ -->
+  <div id="end" class="screen hidden">
+    <div class="title-box small">
+      <h1 id="end-title">GAME OVER</h1>
+      <p class="tag" id="end-quip"></p>
+      <div id="end-stats"></div>
+      <button id="btn-again" class="btn big">🔁 Try again</button>
+      <button id="btn-endless" class="btn hidden">♾️ Keep going (endless)</button>
+      <button id="btn-menu" class="btn">🏠 Change hero</button>
+    </div>
+  </div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/models.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
